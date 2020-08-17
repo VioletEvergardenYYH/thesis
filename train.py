@@ -73,7 +73,7 @@ class Instructor:
                 #print(type(sample_batched['text_elmo']))
                 inputs = [sample_batched[col].to(self.opt.device) if col != 'contra_pos'  \
                           else sample_batched[col] for col in self.opt.inputs_cols]
-                #列表，包含'text_indices', 'contra_pos',  'dependency_graph'
+                #列表，包含'text_bert', 'batch_text_len','contra_pos',  'dependency_graph'
                 targets = sample_batched['polarity'].to(self.opt.device)  # 0，1，2
 
                 outputs = self.model(inputs)  # softmax分数

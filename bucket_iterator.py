@@ -6,7 +6,6 @@ import torch
 import os
 import pickle
 import numpy
-from allennlp.modules.elmo import Elmo, batch_to_ids
 options_file = "https://allennlp.s3.amazonaws.com/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
 weight_file = "https://allennlp.s3.amazonaws.com/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
 
@@ -54,13 +53,7 @@ class BucketIterator(object):
         batch_dependency_graph = []
         batch_text_len = []
         max_len = max([t[self.sort_key].size(0) for t in batch_data])
-        # if max_len != 7:
-        #     return []
-        # if max_len == 7:
-        #     print([len(t[self.sort_key]) for t in batch_data])
-        # for item in batch_data:
-        #     if len(item['dependency_graph'])==8:
-        #         print(item['text'])
+
 
         for item in batch_data:
             text, contra_pos , polarity, dependency_graph = \

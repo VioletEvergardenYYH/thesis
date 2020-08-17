@@ -33,6 +33,9 @@ def process(path):
         tokenized_text = tokenizer.tokenize(marked_text) #[str, str, str]
 
         indexed_tokens = tokenizer.convert_tokens_to_ids(tokenized_text) #[int, int , int]
+        # if id == '13' or id == '28':
+        #     print(indexed_tokens)
+        #     print(tokenized_text)
 
         segments_ids = [1] * len(indexed_tokens)
 
@@ -63,13 +66,13 @@ def process(path):
 
         summed_last_4_layers = torch.cat([torch.sum(torch.stack(layer)[-4:], 0) for layer in token_embeddings],dim=0).view([-1,768]) # [number_of_tokens, 768]
         data_all[id] = [tokenized_text, label, summed_last_4_layers]
-    with open('./datasets/train/train.pkl', 'wb') as f:
+    with open('./datasets/goldtest_TaskA/test_hash.pkl', 'wb') as f:
         pickle.dump(data_all, f)
 
 
 
 if __name__ == '__main__':
-    process('./datasets/train/SemEval2018-T3-train-taskA_emoji.txt')
+    process('./datasets/goldtest_TaskA/SemEval2018-T3_gold_test_taskA_emoji.txt')
 
 
 
