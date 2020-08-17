@@ -312,9 +312,9 @@ class IDDatesetReader:
         print("preparing {0} dataset ...".format(dataset))
         fname = {
             'twitter': {
-                'train': './datasets/train/SemEval2018-T3-train-taskA.txt',
+                'train': './datasets/train/train.pkl',
                 'example': 'datasets/trial/trial.pkl',
-                'test': './datasets/test_TaskA/SemEval2018-T3_input_test_taskA.txt'
+                'test': './datasets/goldtest_TaskA/test.pkl'
             },
             'emoji': {
                 'train': './datasets/train/SemEval2018-T3-train-taskA_emoji.txt',
@@ -339,9 +339,9 @@ class IDDatesetReader:
         #     with open(dataset+'_word2idx.pkl', 'wb') as f:
         #          pickle.dump(tokenizer.word2idx, f)
         # self.embedding_matrix = build_embedding_matrix(tokenizer.word2idx, embed_dim, dataset)
-        self.train_data = IDDataset(IDDatesetReader.__read_bert_data__(fname[dataset]['example']))
+        self.train_data = IDDataset(IDDatesetReader.__read_bert_data__(fname[dataset]['train']))
         #列表，装有每个样本对应的数据字典
-        self.test_data = IDDataset(IDDatesetReader.__read_bert_data__(fname[dataset]['example']))
+        self.test_data = IDDataset(IDDatesetReader.__read_bert_data__(fname[dataset]['test']))
 
 if __name__ == '__main__':
 
