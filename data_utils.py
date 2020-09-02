@@ -158,7 +158,9 @@ class IDDatesetReader:
                 'text': text_tensor,
                 'contra_pos': contra_pos,
                 'polarity': polarity,
-                'dependency_graph': dependency_graph
+                'dependency_graph': dependency_graph,
+                'words': text,
+                'id': id
             }
             all_data.append(dic)
 
@@ -312,9 +314,9 @@ class IDDatesetReader:
         print("preparing {0} dataset ...".format(dataset))
         fname = {
             'twitter': {
-                'train': './datasets/train/train.pkl',
+                'train': './datasets/train/train_hash.pkl',
                 'example': 'datasets/trial/trial.pkl',
-                'test': './datasets/goldtest_TaskA/test.pkl'
+                'test': './datasets/goldtest_TaskA/test_hash.pkl'
             },
             'emoji': {
                 'train': './datasets/train/SemEval2018-T3-train-taskA_emoji.txt',

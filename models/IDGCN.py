@@ -5,6 +5,8 @@ import torch.nn.functional as F
 from layers import DynamicLSTM
 from layers import GraphAttentionLayer
 from layers import GraphConvolution
+import random
+import pdb
 
 class GAT(nn.Module):
     """
@@ -41,7 +43,8 @@ class IDGCN(nn.Module):
         self.text_lstm = DynamicLSTM(opt.embed_dim, opt.hidden_dim, num_layers=1, batch_first=True, bidirectional=True)
         self.gc1 = GraphConvolution(2*opt.hidden_dim, 2*opt.hidden_dim) #BLSTM所以乘二
         self.gc2 = GraphConvolution(2*opt.hidden_dim, 2*opt.hidden_dim)
-        self.gat1 = GAT(2*opt.hidden_dim, 2*opt.hidden_dim, 0.1, 0.2, 3)
+        self.gat1 = GAT(2*opt.hidden_dim, 2*opt.hidden_dim, 0.1, 0.2, 1) #dropout, leakyRelu斜率, num of heads
+        self.gat2 = GAT(2*opt.hidden_dim, 2*opt.hidden_dim, 0.1, 0.2, 1)
         self.fc = nn.Linear(512, opt.polarities_dim)
         self.fc1 = nn.Linear(2*opt.hidden_dim, 512)
         self.nn_drop = nn.Dropout(0.1)
@@ -80,8 +83,22 @@ class IDGCN(nn.Module):
         mask = torch.tensor(mask).unsqueeze(2).float().to(self.opt.device)
         return mask*x
 
+    def rand_mask(self, x, batch_text_len):   #针对一个batch size
+        batch_size, seq_len = x.shape[0], x.shape[1]
+        #contra_pos = contra_pos.cpu().numpy()
+        mask = [[] for i in range(batch_size)]
+        for i in range(batch_size):
+            m = random.sample(range(0,int(batch_text_len[i])),2)
+            for j in range(seq_len):
+                if m.count(j):
+                    mask[i].append(1)
+                else:
+                    mask[i].append(0)
+        mask = torch.tensor(mask).unsqueeze(2).float().to(self.opt.device)
+        return mask*x
+
     def forward(self, inputs):   #每次传入一个batch的数据
-        text_bert,batch_text_len, contra_pos, adj = inputs   #text_bert 32*max_len*768 batch_text_len 32*1
+        text_bert,batch_text_len, contra_pos, adj, words, id = inputs   #text_bert 32*max_len*768 batch_text_len 32*1
         #text_len = torch.sum(text_elmo != 0, dim=-1)
         #text = self.embed(text_elmo)
         text = self.text_embed_dropout(text_bert)
@@ -89,20 +106,37 @@ class IDGCN(nn.Module):
         #print('text_out:', text_out.size())              batch_size, len, 2*1024
         #print('batch_text_len:', batch_text_len.size())  batch_size,1
         #print('adj:', adj.size())                        batch_size, len, len
-        # x = F.relu(self.gc1(text_out, adj))
-        # x = F.relu(self.gc2(x, adj))
+        if self.opt.only_bert == False:
+            if self.opt.use_gcn == False:
+                x = self.gat1(text_out, adj)
+                #pdb.set_trace()
+                #x = self.gat2(x, adj)
+            else:
+                x = F.relu(self.gc1(text_out, adj))
+                x = F.relu(self.gc2(x, adj))
 
-        x = F.relu(self.gat1(text_out, adj))
-        #print('x before m',x.size())  #batch_size, len, 2048
-        x = self.mask(x, contra_pos)
-        #print('after m',x.size())   batch_size, len, 2048
-        alpha_mat = torch.matmul(x, text_out.transpose(1, 2))   #text_out和x做内积，len*len的内积矩阵,只有contra_pos位置非0，attention结果
-        #print('alpha_mat', alpha_mat.size())  batch_size, len, len
-        alpha = F.softmax(alpha_mat.sum(1, keepdim=True), dim=2)#32*1*len
-        #print('alpha_mat after softmax', alpha.size())   batch_size, 1, len
-        x = torch.matmul(alpha, text_out).squeeze(1) # batch_size x 2*hidden_dim   32*1024
-        #print('final x', x.size())
+
+            #print('x before m',x.size())  #batch_size, len, 2048
+            if self.opt.rand_mask == True:
+                x = self.rand_mask(x, batch_text_len)
+            else:
+                x = self.mask(x, contra_pos)
+            #print('after m',x.size())   batch_size, len, 2048
+            alpha_mat = torch.matmul(x, text_out.transpose(1, 2))   #text_out和x做内积，len*len的内积矩阵,只有contra_pos位置非0，attention结果
+            #print('alpha_mat', alpha_mat.size())  batch_size, len, len
+            alpha = F.softmax(alpha_mat.sum(1, keepdim=True), dim=2)#32*1*len
+            #print('alpha_mat after softmax', alpha.size())   batch_size, 1, len
+            x = torch.matmul(alpha, text_out).squeeze(1) # batch_size x 2*hidden_dim   32*1024
+            #print('final x', x.size())
+        else:
+            x = torch.mean(text_out, dim = 1)
+        if self.opt.load_model and id.count('450'):
+            pdb.set_trace()
+
         x = self.fc1(x)
         x = self.nn_drop(x)
         output = self.fc(x)
+
+        #if self.opt.load_model and (id.count('450') ):
+        
         return output

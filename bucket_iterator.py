@@ -52,15 +52,19 @@ class BucketIterator(object):
         batch_polarity = []
         batch_dependency_graph = []
         batch_text_len = []
+        batch_text_words = []
+        batch_text_id = []
         max_len = max([t[self.sort_key].size(0) for t in batch_data])
 
 
         for item in batch_data:
-            text, contra_pos , polarity, dependency_graph = \
+            text, contra_pos , polarity, dependency_graph, words, id = \
                 item['text'], item['contra_pos'], \
-                item['polarity'], item['dependency_graph']
+                item['polarity'], item['dependency_graph'], item['words'], item['id']
             text_len = text.size(0)
             batch_text_len.append(text_len)
+            batch_text_words.append(words)
+            batch_text_id.append(id)
             pad = torch.zeros([max_len-text_len,768])
             text = torch.cat([text,pad], dim=0)
             batch_text.append(text)
@@ -77,7 +81,9 @@ class BucketIterator(object):
                 'batch_text_len':torch.tensor(batch_text_len), #32,
                 'contra_pos': batch_contra_pos,
                 'polarity': torch.tensor(batch_polarity),      #32,
-                'dependency_graph': torch.tensor(batch_dependency_graph)
+                'dependency_graph': torch.tensor(batch_dependency_graph),
+                'words': batch_text_words,
+                'id': batch_text_id
                     }
 
     def __iter__(self):

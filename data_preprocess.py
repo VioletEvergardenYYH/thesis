@@ -24,6 +24,7 @@ def process(path):
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     f = open(path, 'r')
     next(f)
+    model = BertModel.from_pretrained('bert-base-uncased')
     for line in f:
         line = line.strip().split('\t')
         id, label, text = line
@@ -44,8 +45,6 @@ def process(path):
         segments_tensors = torch.tensor([segments_ids])
         # Load pre-trained model (weights)
         #data_all[id] = [tokenized_text, label, tokens_tensor, segments_tensors]
-
-        model = BertModel.from_pretrained('bert-base-uncased')
         # Put the model in "evaluation" mode, meaning feed-forward operation.
         model.eval()
         # Predict hidden states features for each layer
@@ -66,13 +65,13 @@ def process(path):
 
         summed_last_4_layers = torch.cat([torch.sum(torch.stack(layer)[-4:], 0) for layer in token_embeddings],dim=0).view([-1,768]) # [number_of_tokens, 768]
         data_all[id] = [tokenized_text, label, summed_last_4_layers]
-    with open('./datasets/goldtest_TaskA/test_hash.pkl', 'wb') as f:
+    with open('./datasets/train/train_hash.pkl', 'wb') as f:
         pickle.dump(data_all, f)
 
 
 
 if __name__ == '__main__':
-    process('./datasets/goldtest_TaskA/SemEval2018-T3_gold_test_taskA_emoji.txt')
+    process('./datasets/train/SemEval2018-T3-train-taskA_emoji.txt')
 
 
 
