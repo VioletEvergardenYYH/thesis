@@ -2,6 +2,7 @@ import os
 import pickle
 import numpy as np
 import nltk
+import pdb
 from nltk.tokenize import TweetTokenizer
 from pytorch_pretrained_bert import BertTokenizer, BertModel, BertForMaskedLM
 from nltk.corpus import sentiwordnet as swn
@@ -124,13 +125,16 @@ class IDDatesetReader:
         graph = pickle.load(fin)
         fin.close()
         all_data = []
+        #pdb.set_trace()
         for id, v in data.items():
             text = v[0]
+            if len(text) == 0:
+                print('haha')
+                continue
             polarity = int(v[1])
             text_tensor = v[2]
             dependency_graph = graph[id]
             contra_pos = []
-
             pos_all = []
             neg_all = []
             for i in range(len(text)):  # 每个词
@@ -148,6 +152,7 @@ class IDDatesetReader:
                 else:
                     pos_all.append(-1)
                     neg_all.append(-1)
+            
             m_pos = max(pos_all)
             m_neg = max(neg_all)
 
@@ -314,9 +319,9 @@ class IDDatesetReader:
         print("preparing {0} dataset ...".format(dataset))
         fname = {
             'twitter': {
-                'train': './datasets/train/train_hash.pkl',
-                'example': 'datasets/trial/trial.pkl',
-                'test': './datasets/goldtest_TaskA/test_hash.pkl'
+                'train': './datasets/train/train.pkl',
+                'example': 'datasets/trial/trial_mid.pkl',
+                'test': './datasets/goldtest_TaskA/test_mid.pkl'
             },
             'emoji': {
                 'train': './datasets/train/SemEval2018-T3-train-taskA_emoji.txt',

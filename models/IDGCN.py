@@ -44,7 +44,7 @@ class IDGCN(nn.Module):
         self.gc1 = GraphConvolution(2*opt.hidden_dim, 2*opt.hidden_dim) #BLSTM所以乘二
         self.gc2 = GraphConvolution(2*opt.hidden_dim, 2*opt.hidden_dim)
         self.gat1 = GAT(2*opt.hidden_dim, 2*opt.hidden_dim, 0.1, 0.2, 1) #dropout, leakyRelu斜率, num of heads
-        self.gat2 = GAT(2*opt.hidden_dim, 2*opt.hidden_dim, 0.1, 0.2, 1)
+        self.gat2 = GAT(2*opt.hidden_dim, 2*opt.hidden_dim, 0.1, 0.2, 3)
         self.fc = nn.Linear(512, opt.polarities_dim)
         self.fc1 = nn.Linear(2*opt.hidden_dim, 512)
         self.nn_drop = nn.Dropout(0.1)
@@ -108,9 +108,9 @@ class IDGCN(nn.Module):
         #print('adj:', adj.size())                        batch_size, len, len
         if self.opt.only_bert == False:
             if self.opt.use_gcn == False:
-                x = self.gat1(text_out, adj)
+                x = F.relu(self.gat1(text_out, adj))
                 #pdb.set_trace()
-                #x = self.gat2(x, adj)
+                x = F.relu(self.gat2(x, adj))
             else:
                 x = F.relu(self.gc1(text_out, adj))
                 x = F.relu(self.gc2(x, adj))
@@ -130,12 +130,13 @@ class IDGCN(nn.Module):
             #print('final x', x.size())
         else:
             x = torch.mean(text_out, dim = 1)
-        if self.opt.load_model and id.count('450'):
-            pdb.set_trace()
+        
 
         x = self.fc1(x)
         x = self.nn_drop(x)
         output = self.fc(x)
+        if self.opt.load_model and list(batch_text_len).count(9):
+            pdb.set_trace()
 
         #if self.opt.load_model and (id.count('450') ):
         

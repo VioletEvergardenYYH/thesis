@@ -2,7 +2,9 @@ import torch
 import re
 import pickle
 import copy
+import pdb
 from pytorch_pretrained_bert import BertTokenizer, BertModel, BertForMaskedLM
+from graph import *
 def wash_text(text):
     text = text.split()
     final = []
@@ -20,6 +22,8 @@ def process(path):
     tokenized_text：       [str, str, str]，每个str是一个token
     summed_last_4_layers： [number_of_tokens, 768]
     """
+    if torch.cuda.is_available():
+        print('cuda memory allocated:', torch.cuda.memory_allocated(device=opt.device.index))
     data_all = {}
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     f = open(path, 'r')
@@ -64,14 +68,18 @@ def process(path):
           token_embeddings.append(hidden_layers)
 
         summed_last_4_layers = torch.cat([torch.sum(torch.stack(layer)[-4:], 0) for layer in token_embeddings],dim=0).view([-1,768]) # [number_of_tokens, 768]
-        data_all[id] = [tokenized_text, label, summed_last_4_layers]
-    with open('./datasets/train/train_hash.pkl', 'wb') as f:
+        #pdb.set_trace()
+        data_all[id] = [tokenized_text[1:-1], label, summed_last_4_layers[1:-1]]
+    with open('./datasets/train/train.pkl', 'wb') as f:
         pickle.dump(data_all, f)
+    bert_process('./datasets/train/train.pkl')
 
 
 
 if __name__ == '__main__':
-    process('./datasets/train/SemEval2018-T3-train-taskA_emoji.txt')
+    
+    #process('./datasets/trial/SemEval2018-T3-train-taskA_emoji.txt')
+    #process('./datasets/goldtest_TaskA/SemEval2018-T3_gold_test_taskA_emoji.txt')
 
 
 

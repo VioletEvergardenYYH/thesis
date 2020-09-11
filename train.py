@@ -101,7 +101,7 @@ class Instructor:
                         if self.opt.save and test_f1 > self.global_f1:
                             self.global_f1 = test_f1
                             torch.save(self.model.state_dict(),
-                                       'state_dict/' + 'idgcn' + '.pkl')
+                                       'state_dict/' + 'idgcn_nohash' + '.pkl')
                             print('>>> best model saved.')
                     print('loss: {:.4f}, acc: {:.4f}, test_acc: {:.4f}, test_f1: {:.4f}, test_p: {:.4f}, test_r: {:.4f}'.format(loss.item(), train_acc,
                                                                                                 test_acc, test_f1, test_p, test_r))
@@ -117,7 +117,7 @@ class Instructor:
     def _evaluate_acc_f1(self):
         # switch model to evaluation mode
         if self.opt.load_model:
-            self.model.load_state_dict(torch.load('state_dict/idgcn.pkl'))
+            self.model.load_state_dict(torch.load('state_dict/idgat_mid.pkl'))
         self.model.eval()
         n_test_correct, n_test_total = 0, 0
         t_targets_all, t_outputs_all = None, None
