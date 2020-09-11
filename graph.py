@@ -1,16 +1,12 @@
 import numpy as np
 import spacy
 import nltk
-import PIL
-from PIL import Image
 import pickle
 import pdb
-from nltk.corpus import wordnet as wn
 from nltk.tokenize import TweetTokenizer
 import re
 
 tokenizer = TweetTokenizer(preserve_case=False, reduce_len=True, strip_handles=True)
-
 nlp = spacy.load('en_core_web_sm')
 trainA = './datasets/train/SemEval2018-T3-train-taskA.txt'
 trialA = './datasets/trial/example-dataset-taskA.txt'
@@ -89,14 +85,16 @@ def bert_process(filename):
     f.close()
     idx2graph = {}
     fout = open(filename + '.graph', 'wb')
+    print("generating graph...")
     for id, v in data.items():
-        v[0][0] = 'CLS'
-        v[0][-1] = 'SEP'
+        # v[0][0] = 'CLS'
+        # v[0][-1] = 'SEP'
         text = ' '.join(v[0])
         matrix = dependency_adj_matrix(text)
         idx2graph[id] = matrix
     pickle.dump(idx2graph, fout)
     fout.close()
+    print("Done")
 
 
 
@@ -105,6 +103,8 @@ if __name__ == '__main__':
     # process(testA)
     # process(trainA)
     #adj_matrix = dependency_adj_matrix(' '.join(["you're", 'great', 'at', 'keeping', 'a', 'conversation', '. .']))
-    bert_process('./datasets/trial/trial.pkl')
+    #bert_process('./datasets/goldtest_TaskA/test_mid.pkl')
+    #bert_process('./datasets/train/train_mid.pkl')
+    bert_process('./datasets/trial/trial_mid.pkl')
     #bug: 邻接矩阵函数将被tweet分词器视为一个词的. .视作两个词
     #核心问题：生成word2idx的分词器没见过. .这个词，使用text_indice不会出错是因为，由普通分词器生成的text_indice将. .视作两个词

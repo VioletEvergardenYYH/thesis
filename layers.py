@@ -1,10 +1,105 @@
 # -*- coding: utf-8 -*-
-
-
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
-import nni
+
+class GraphConvolution(nn.Module):
+
+    def __init__(self, in_features, out_features, bias=True):
+        super(GraphConvolution, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.weight = nn.Parameter(torch.FloatTensor(in_features, out_features))
+        if bias:
+            self.bias = nn.Parameter(torch.FloatTensor(out_features))
+        else:
+            self.register_parameter('bias', None)
+
+    def forward(self, x, adj):
+        hidden = torch.matmul(x, self.weight)
+        denom = torch.sum(adj, dim=2, keepdim=True) + 1 #度
+        output = torch.matmul(adj, hidden) / denom
+        if self.bias is not None:
+            return output + self.bias
+        else:
+            return output
+
+class GraphAttentionLayer(nn.Module):
+    """
+    https://arxiv.org/abs/1710.10903
+    """
+
+    def __init__(self, in_features, out_features, dropout, alpha, concat=True):
+        super(GraphAttentionLayer, self).__init__()
+        self.dropout = dropout
+        self.in_features = in_features
+        self.out_features = out_features
+        self.alpha = alpha
+        self.concat = concat
+
+        self.W = nn.Parameter(torch.zeros(size=(in_features, out_features)))
+        nn.init.xavier_uniform_(self.W.data, gain=1.414)
+        self.a = nn.Parameter(torch.zeros(size=(2*out_features, 1)))
+        nn.init.xavier_uniform_(self.a.data, gain=1.414)
+
+        self.leakyrelu = nn.LeakyReLU(self.alpha)
+
+    # def forward(self, input, adj):
+    #     h = torch.mm(input, self.W)
+    #     N = h.size()[0]
+    #     print('h:')
+    #     print(h)
+    #
+    #     a_input = torch.cat([h.repeat(1, N).view(N * N, -1), h.repeat(N, 1)], dim=1).view(N, -1, 2 * self.out_features)
+    #     print(a_input)
+    #     e = self.leakyrelu(torch.matmul(a_input, self.a).squeeze(2))
+    #     print('e')
+    #     print(e, e.size())  #3,3
+    #     zero_vec = -9e15*torch.ones_like(e)
+    #     print('zero_vec')
+    #     print(zero_vec,zero_vec.size())
+    #     attention = torch.where(adj > 0, e, zero_vec)
+    #     print(attention)
+    #
+    #     attention = F.softmax(attention, dim=1)
+    #     print('attention')
+    #     print(attention)
+    #     attention = F.dropout(attention, self.dropout, training=self.training)
+    #     h_prime = torch.matmul(attention, h)
+    #
+    #     if self.concat:
+    #         return F.elu(h_prime)
+    #     else:
+    #         return h_prime
+
+    def forward(self, input, adj):
+        h = torch.matmul(input, self.W)
+        batch_size = h.size()[0] #batch_size
+        N = h.size()[1]
+
+        a_input = torch.cat([h.repeat(1,1, N).view(batch_size,N * N, -1), h.repeat(1,N, 1)], dim=2).view(batch_size, N, -1, 2 * self.out_features)
+        #N, N, 2*dim 第一个N是每一个节点，第二个N是每个节点对所有N个节点拼接，这一步将所有的节点对都拼接起来
+        #print('a_input')
+        #print(a_input, a_input.size()) # batch_size,N,N,2*dim
+
+        e = self.leakyrelu(torch.matmul(a_input, self.a).squeeze(3))
+        #print('e:')
+        #print(e, e.size()) #batch_size, N*N
+
+        zero_vec = -9e15*torch.ones_like(e)
+        attention = torch.where(adj > 0, e, zero_vec)
+        attention = F.softmax(attention, dim=2)
+        attention = F.dropout(attention, self.dropout, training=self.training)
+        h_prime = torch.matmul(attention, h)
+
+        if self.concat:
+            return F.elu(h_prime)
+        else:
+            return h_prime
+
+    def __repr__(self):
+        return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'
 
 class DynamicLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers=1, bias=True, batch_first=True, dropout=0,
@@ -93,3 +188,12 @@ class DynamicLSTM(nn.Module):
                 ct = torch.transpose(ct, 0, 1)
 
             return out, (ht, ct)
+
+if __name__ == '__main__':
+    g = GraphAttentionLayer(2, 2, 0.1, 0.2)
+    x = torch.randn([2,3, 2])
+    adj = torch.randn([2,3, 3])
+    out = g(x, adj)
+    print(out.size())
+
+
